@@ -1,4 +1,4 @@
-name: Deploy AURELIA to GitHub Pages
+name: Deploy Aurelia Cafe to GitHub Pages
 
 on:
   push:
