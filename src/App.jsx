@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
@@ -6,18 +6,21 @@ import { siteConfig } from './data/siteConfig'
 import useReducedMotion from './hooks/useReducedMotion'
 import Header from './components/Header'
 import Hero from './components/Hero'
+import TimelineSection from './components/TimelineSection'
 import MenuSection from './components/MenuSection'
 import LiveMusicSection from './components/LiveMusicSection'
-import GallerySection from './components/GallerySection'
+import OrderDrawer from './components/OrderDrawer'
+import OrderConfirmationModal from './components/OrderConfirmationModal'
+import StickyMobileCartBar from './components/StickyMobileCartBar'
+import LegalModal from './components/LegalModal'
+import AdminPortal from './components/AdminPortal'
+import { DemoNoticeBanner } from './components/DemoNoticeBanner'
 import {
-  AboutSection,
-  HighlightsSection,
   OutdoorViewSection,
   ReviewsSection,
-  EventsSection,
   LocationSection,
   FaqSection,
-  ContactSection,
+  BookingSection,
   FooterSection,
 } from './components/ExperienceSections'
 import { CustomCursor, Lightbox, Loader, WaveDivider, WhatsAppFloat } from './components/UI'
@@ -27,137 +30,128 @@ gsap.registerPlugin(ScrollTrigger)
 export default function App() {
   const reducedMotion = useReducedMotion()
   const lenisRef = useRef(null)
-  const scrollProgressRef = useRef(0)
   const [loading, setLoading] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [lightbox, setLightbox] = useState(null)
   const [reservationIntent, setReservationIntent] = useState(null)
+  const [cartItems, setCartItems] = useState([])
+  const [legalModalType, setLegalModalType] = useState(null)
+  const [adminView, setAdminView] = useState(false)
+  const [confirmedOrder, setConfirmedOrder] = useState(null) // { id, status }
+  const [tableParam, setTableParam] = useState(null)
 
+  // Read ?table=5 and ?admin=true from URL on load
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const tbl = params.get('table')
+      if (tbl) setTableParam(tbl)
+      if (params.get('admin') === 'true' || window.location.pathname.startsWith('/admin')) {
+        setAdminView(true)
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  // Manage body scroll lock
   useEffect(() => {
     document.body.classList.toggle('loader-locked', loading)
     if (lenisRef.current) {
       if (loading) lenisRef.current.stop()
-      else if (!menuOpen) lenisRef.current.start()
+      else if (!menuOpen && !drawerOpen && !adminView && !legalModalType && !confirmedOrder) {
+        lenisRef.current.start()
+      }
     }
     return () => {
       document.body.classList.remove('loader-locked')
     }
-  }, [loading, menuOpen])
+  }, [loading, menuOpen, drawerOpen, adminView, legalModalType, confirmedOrder])
 
+  // Scroll animations with GSAP
   useEffect(() => {
-    if (loading) return undefined
+    if (loading || adminView) return undefined
+
     const ctx = gsap.context(() => {
+      // General data-reveal elements
       gsap.utils.toArray('[data-reveal]').forEach((element) => {
         gsap.fromTo(
           element,
-          { y: 34, opacity: 0 },
+          { y: 30, opacity: 0 },
           {
             y: 0,
             opacity: 1,
-            duration: 0.9,
+            duration: 0.85,
             ease: 'power3.out',
             scrollTrigger: { trigger: element, start: 'top 88%', once: true },
           }
         )
       })
 
+      // Hero animations (transforms & opacity only, skipped if prefers-reduced-motion)
       if (!reducedMotion) {
-        gsap.fromTo(
-          '.hero-media img',
-          { scale: 1.16 },
-          { scale: 1.03, duration: 2, ease: 'power2.out' }
-        )
-        gsap.to('.hero-media img', {
-          yPercent: 12,
+        // Parallax sea image layer
+        gsap.to('.hero-sea-image', {
+          yPercent: 18,
           ease: 'none',
-          scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true },
+          scrollTrigger: {
+            trigger: '.hero',
+            start: 'top top',
+            end: 'bottom top',
+            scrub: true,
+          },
         })
-        gsap.to('.hero__shade-sunset', {
-          opacity: 1,
-          ease: 'none',
-          scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true },
-        })
+
+        // Hero headline line-by-line reveal
         gsap.fromTo(
           '.hero-copy-line',
           { yPercent: 105, opacity: 0 },
-          { yPercent: 0, opacity: 1, duration: 1.05, stagger: 0.13, delay: 0.05, ease: 'power4.out' }
+          {
+            yPercent: 0,
+            opacity: 1,
+            duration: 1.05,
+            stagger: 0.14,
+            delay: 0.05,
+            ease: 'power4.out',
+          }
         )
-        gsap.utils.toArray('.image-reveal img').forEach((image) =>
-          gsap.fromTo(
-            image,
-            { scale: 1.08 },
-            {
-              scale: 1,
-              duration: 1.2,
-              ease: 'power2.out',
-              scrollTrigger: { trigger: image, start: 'top 86%', once: true },
-            }
-          )
-        )
-
-        // Pinned horizontal scroll for weekly live music lineup
-        const track = document.querySelector('.lineup-track')
-        const pin = document.querySelector('.lineup-pin')
-        if (track && pin && window.matchMedia('(min-width: 981px)').matches) {
-          const getDistance = () => Math.max(0, track.scrollWidth - window.innerWidth + 80)
-          gsap.to(track, {
-            x: () => -getDistance(),
-            ease: 'none',
-            scrollTrigger: {
-              trigger: pin,
-              start: 'top top',
-              end: () => `+=${getDistance()}`,
-              scrub: 1,
-              pin: true,
-              anticipatePin: 1,
-              invalidateOnRefresh: true,
-            },
-          })
-        }
       }
+
       ScrollTrigger.refresh()
     })
+
     return () => {
       ctx.revert()
       ScrollTrigger.getAll().forEach((trigger) => trigger.kill())
     }
-  }, [loading, reducedMotion])
+  }, [loading, reducedMotion, adminView])
 
+  // Lenis smooth scrolling (disabled if prefers-reduced-motion)
   useEffect(() => {
-    const bar = document.querySelector('.progress-bar')
-    const updateProgress = (scrollVal) => {
-      const scrollable = document.documentElement.scrollHeight - window.innerHeight
-      const p = scrollable > 0 ? Math.min(1, Math.max(0, scrollVal / scrollable)) : 0
-      scrollProgressRef.current = p
-      if (bar) bar.style.transform = `scaleX(${p})`
-    }
-    const onScroll = () => updateProgress(window.scrollY)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+    if (reducedMotion || adminView) return undefined
 
-  useEffect(() => {
-    if (reducedMotion) return undefined
-    const lenis = new Lenis({ lerp: 0.085, smoothWheel: true })
+    const lenis = new Lenis({ lerp: 0.09, smoothWheel: true })
     lenisRef.current = lenis
-    const onScroll = (e) => {
+
+    const onScroll = () => {
       ScrollTrigger.update()
-      if (e && typeof e.progress === 'number') {
-        scrollProgressRef.current = e.progress
-      }
     }
+
     const raf = (time) => lenis.raf(time * 1000)
     lenis.on('scroll', onScroll)
     gsap.ticker.add(raf)
     gsap.ticker.lagSmoothing(0)
+
     return () => {
       lenis.off('scroll', onScroll)
       gsap.ticker.remove(raf)
       lenis.destroy()
       lenisRef.current = null
     }
-  }, [reducedMotion])
+  }, [reducedMotion, adminView])
 
+  // Mobile menu scroll lock
   useEffect(() => {
     document.body.classList.toggle('menu-open', menuOpen)
     if (lenisRef.current) {
@@ -170,89 +164,178 @@ export default function App() {
     }
   }, [menuOpen])
 
+  // Cart operations
+  const handleAddToCart = (menuItem) => {
+    setCartItems((prev) => {
+      const existing = prev.find((i) => i.id === menuItem.id)
+      if (existing) {
+        return prev.map((i) =>
+          i.id === menuItem.id ? { ...i, quantity: i.quantity + 1 } : i
+        )
+      }
+      return [...prev, { ...menuItem, quantity: 1, itemNotes: '' }]
+    })
+    setDrawerOpen(true)
+  }
+
+  const handleUpdateQty = (itemId, newQty) => {
+    if (newQty <= 0) {
+      setCartItems((prev) => prev.filter((i) => i.id !== itemId))
+    } else {
+      setCartItems((prev) =>
+        prev.map((i) => (i.id === itemId ? { ...i, quantity: newQty } : i))
+      )
+    }
+  }
+
+  const handleUpdateItemNotes = (itemId, notes) => {
+    setCartItems((prev) =>
+      prev.map((i) => (i.id === itemId ? { ...i, itemNotes: notes } : i))
+    )
+  }
+
+  const handleClearCart = () => {
+    setCartItems([])
+  }
+
   const openReservation = (intent = {}) => {
     setReservationIntent(intent)
     window.setTimeout(() => {
-      document.querySelector('#reservation')?.scrollIntoView({
+      document.querySelector('#booking')?.scrollIntoView({
         behavior: reducedMotion ? 'auto' : 'smooth',
       })
     }, 40)
   }
 
-  const handleHighlightSelect = (id) => {
-    if (id === 'live-music') {
-      document.querySelector('#live-music')?.scrollIntoView({ behavior: 'smooth' })
-    } else if (id === 'outdoor-seating') {
-      document.querySelector('#outdoor')?.scrollIntoView({ behavior: 'smooth' })
-    } else if (id === 'vegetarian-options') {
-      document.querySelector('#menu')?.scrollIntoView({ behavior: 'smooth' })
-    }
+  const handleOrderSuccess = (orderId, status) => {
+    setConfirmedOrder({ id: orderId, status })
+  }
+
+  const handleBookingSuccess = (booking, whatsappUrl) => {
+    alert(`🎉 Table Booking Confirmed! (Booking ID: ${booking.bookingId})\nClick OK to open WhatsApp summary for the cafe.`)
+    if (whatsappUrl) window.open(whatsappUrl, '_blank')
+  }
+
+  const totalCartCount = cartItems.reduce((acc, it) => acc + it.quantity, 0)
+  const totalCartAmount = cartItems.reduce((acc, it) => {
+    return typeof it.price === 'number' ? acc + it.price * it.quantity : acc
+  }, 0)
+
+  // If in Admin Portal Mode, render full-screen Admin View
+  if (adminView) {
+    return (
+      <>
+        <DemoNoticeBanner />
+        <AdminPortal onBackToSite={() => setAdminView(false)} />
+        <CustomCursor />
+      </>
+    )
   }
 
   return (
     <>
       {loading && <Loader onComplete={() => setLoading(false)} />}
-      <div className="progress-bar" aria-hidden="true" />
-      <Header menuOpen={menuOpen} onMenuToggle={setMenuOpen} />
+
+      <DemoNoticeBanner />
+
+      <Header
+        menuOpen={menuOpen}
+        onMenuToggle={setMenuOpen}
+        onOpenDrawer={() => setDrawerOpen(true)}
+        orderCount={totalCartCount}
+      />
+
       <main>
         {/* 1. Hero */}
-        <Hero onBookTable={() => openReservation({ occasion: 'Sunset & Sea View Table' })} />
-        <WaveDivider fill="var(--sand)" />
-
-        {/* 2. About */}
-        <AboutSection />
+        <Hero onBookTable={() => openReservation({ notes: 'Table preference: front-row sea view' })} />
         <WaveDivider fill="var(--cream)" />
 
-        {/* 3. Service highlights */}
-        <HighlightsSection onHighlightSelect={handleHighlightSelect} />
+        {/* 2. Morning to Night Timeline (pinned on desktop, swipeable on mobile) */}
+        <TimelineSection />
         <WaveDivider fill="var(--sand)" />
 
-        {/* 4. Menu */}
-        <MenuSection onReserveItem={openReservation} />
-        <WaveDivider fill="var(--ocean-teal)" />
+        {/* 3. Menu (tabs, cuisine chips, order drawer integration) */}
+        <MenuSection
+          onOpenDrawer={() => setDrawerOpen(true)}
+          orderItems={cartItems}
+          onAddToCart={handleAddToCart}
+        />
+        <WaveDivider fill="var(--espresso)" />
 
-        {/* 5. Live music (Pinned horizontal scroll) */}
+        {/* 4. Live Music Card (toggleable in config) */}
         <LiveMusicSection onReserve={openReservation} />
         <WaveDivider fill="var(--sand)" />
 
-        {/* 6. Outdoor seating and sea view */}
+        {/* 5. Outdoor Seating & Sea-view Gallery */}
         <OutdoorViewSection onReserveTable={openReservation} />
-        <WaveDivider fill="var(--ocean-teal)" />
+        <WaveDivider fill="var(--sea-teal)" />
 
-        {/* 7. Reviews (3,800+ Google reviews counter) */}
+        {/* 6. Guest Reviews (3 sample reviews, no invented facts) */}
         <ReviewsSection />
-        <WaveDivider fill="var(--cream)" />
-
-        {/* 8. Events and groups */}
-        <EventsSection onEnquireEvent={openReservation} />
-        <WaveDivider fill="var(--ocean-teal)" />
-
-        {/* 9. Gallery */}
-        <GallerySection onOpen={setLightbox} />
         <WaveDivider fill="var(--sand)" />
 
-        {/* 10. Find us */}
+        {/* 7. Find Us */}
         <LocationSection />
         <WaveDivider fill="var(--cream)" />
 
-        {/* 11. FAQ */}
-        <FaqSection />
-        <WaveDivider fill="var(--laterite)" />
+        {/* 8. Table Booking Form (server-side capacity check & optional deposit) */}
+        <BookingSection
+          reservationIntent={reservationIntent}
+          onBookingSuccess={handleBookingSuccess}
+        />
+        <WaveDivider fill="var(--cream)" />
 
-        {/* Table Reservation & Contact */}
-        <ContactSection reservationIntent={reservationIntent} />
-        <WaveDivider fill="var(--ocean-teal)" />
+        {/* 9. FAQ */}
+        <FaqSection />
+        <WaveDivider fill="var(--espresso)" />
       </main>
 
-      {/* 12. Footer */}
-      <FooterSection />
+      {/* 10. Footer with Legal and Admin triggers */}
+      <FooterSection
+        onOpenLegal={(type) => setLegalModalType(type)}
+        onOpenAdmin={() => setAdminView(true)}
+      />
+
+      {/* Sticky Mobile Cart Bar */}
+      <StickyMobileCartBar
+        itemCount={totalCartCount}
+        total={totalCartAmount}
+        onOpen={() => setDrawerOpen(true)}
+      />
+
+      {/* Order & Payment Cart Drawer */}
+      <OrderDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        items={cartItems}
+        onUpdateQty={handleUpdateQty}
+        onUpdateItemNotes={handleUpdateItemNotes}
+        onClear={handleClearCart}
+        onOrderSuccess={handleOrderSuccess}
+        defaultTable={tableParam}
+      />
+
+      {/* Live Order Confirmation Modal */}
+      {confirmedOrder && (
+        <OrderConfirmationModal
+          orderId={confirmedOrder.id}
+          initialStatus={confirmedOrder.status}
+          onClose={() => setConfirmedOrder(null)}
+        />
+      )}
+
+      {/* Privacy, Terms, & Refund Policy Modal */}
+      <LegalModal
+        type={legalModalType}
+        onClose={() => setLegalModalType(null)}
+      />
 
       <WhatsAppFloat />
       <Lightbox image={lightbox} onClose={() => setLightbox(null)} />
       <CustomCursor />
       <div className="grain" aria-hidden="true" />
       <div className="sr-only">
-        {siteConfig.brand.name} restaurant and live music concept website
+        {siteConfig.brand.name} sea-view cafe and kitchen demo in Varkala, Kerala
       </div>
     </>
   )

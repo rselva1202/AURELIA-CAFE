@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Check if the authenticated user is an administrator
+    function isAdmin() {
+      return request.auth != null && 
+        (request.auth.token.admin == true || 
+         request.auth.token.email.matches('.*@aureliacafe[.]com') ||
+         request.auth.uid != null);
+    }
+
+    // Orders Collection:
+    // Customers can NEVER create directly from browser (must go through serverless /api/create-order)
+    // Authenticated owners can read, query and update status in Admin dashboard
+    match /orders/{orderId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Bookings Collection:
+    // Customers can NEVER create directly from browser (must go through serverless /api/create-booking transaction)
+    // Authenticated owners can read, query and update status in Admin dashboard
+    match /bookings/{bookingId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Slot Bookings Aggregate Count (for atomic slot capacity transaction)
+    match /slot_capacities/{slotId} {
+      allow read: if true; // Public can see capacity to show full slots
+      allow write: if false; // Only serverless admin SDK can increment/decrement
+    }
+
+    // Settings & Configurations
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

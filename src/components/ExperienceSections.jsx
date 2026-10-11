@@ -1,90 +1,19 @@
-import { useEffect, useRef, useState } from 'react'
-import { siteConfig, navigation } from '../data/siteConfig'
+import { useState } from 'react'
+import { siteConfig } from '../data/siteConfig'
 import BookingForm from './BookingForm'
 import { ArrowIcon, Button, ImageReveal, SectionHeading } from './UI'
-import brandLogo from '../assets/logo.png'
-
-export function AboutSection() {
-  const logoSrc = brandLogo || siteConfig.brand.logo
-  return (
-    <section className="about section-sand" id="about" aria-labelledby="about-title">
-      <div className="about__grid page-shell">
-        <ImageReveal
-          image={siteConfig.images.about}
-          className="about__image"
-        />
-        <div className="about__copy">
-          <SectionHeading
-            eyebrow={siteConfig.about?.eyebrow || 'Our Story & Perch'}
-            title={siteConfig.about?.title || 'A cliff-top Kerala kitchen above the waves.'}
-            body={siteConfig.about?.body}
-          />
-          <div className="about__signature">
-            {logoSrc ? (
-              <img src={logoSrc} alt={siteConfig.brand.name} className="about__signature-logo" />
-            ) : (
-              <span className="signature-mark">G</span>
-            )}
-            <span>{siteConfig.about?.caption || 'North Cliff near the Helipad · Est. 2012'}</span>
-          </div>
-          <div className="about__actions">
-            <a className="text-link" href="#menu">
-              Explore our menu <ArrowIcon />
-            </a>
-            <a className="text-link" href="#location">
-              Find our cliff perch <ArrowIcon />
-            </a>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-export function HighlightsSection({ onHighlightSelect }) {
-  const highlights = siteConfig.highlights || []
-  return (
-    <section className="highlights section-cream" id="highlights" aria-labelledby="highlights-title">
-      <div className="page-shell">
-        <SectionHeading
-          eyebrow="What We Offer"
-          title="Cliffside Dining Highlights."
-          body="Everything that makes an unhurried coastal meal on North Cliff special."
-        />
-        <div className="highlights-grid">
-          {highlights.map((item, idx) => (
-            <div className="highlight-card" key={item.id} data-reveal>
-              <div className="highlight-card__top">
-                <span className="highlight-card__icon" aria-hidden="true">{item.icon}</span>
-                <span className="highlight-card__tag">{item.tag}</span>
-              </div>
-              <h3>{item.title}</h3>
-              <p className="highlight-card__subtitle">{item.subtitle}</p>
-              <p className="highlight-card__body">{item.description}</p>
-              <button
-                type="button"
-                className="highlight-card__link text-link"
-                onClick={() => onHighlightSelect?.(item.id)}
-              >
-                <span>Learn more</span> <ArrowIcon />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
 
 export function OutdoorViewSection({ onReserveTable }) {
   const cfg = siteConfig.outdoorSeating || {}
+  const gallery = siteConfig.gallery || []
+
   return (
     <section className="outdoor section-sand" id="outdoor" aria-labelledby="outdoor-title">
       <div className="outdoor__grid page-shell">
         <div className="outdoor__copy">
           <SectionHeading
-            eyebrow={cfg.eyebrow || 'Cliffside Atmosphere'}
-            title={cfg.title || 'Tables with unobstructed Arabian Sea views.'}
+            eyebrow={cfg.eyebrow || 'Cliffside Perch'}
+            title={cfg.title || 'Front-row seats to the Arabian Sea.'}
             body={cfg.body}
           />
           <ul className="outdoor__features" data-reveal>
@@ -96,90 +25,66 @@ export function OutdoorViewSection({ onReserveTable }) {
             ))}
           </ul>
           <div className="outdoor__actions">
-            <Button href="#reservation" onClick={() => onReserveTable?.({ occasion: 'Sunset & Sea View Table' })}>
-              Reserve a sunset table
+            <Button href="#booking" onClick={() => onReserveTable?.({ occasion: 'Sunset & Sea View Table' })}>
+              Reserve a sea-view table
             </Button>
           </div>
         </div>
-        <div className="outdoor__media" data-reveal>
-          <ImageReveal image={cfg.image || siteConfig.images.outdoor} className="outdoor__image" />
+
+        {/* Gallery Image Slots with Gradient Fallbacks */}
+        <div className="outdoor__gallery-slots" data-reveal>
+          {gallery.map((item) => (
+            <figure
+              className="gallery-slot-card"
+              key={item.id}
+              style={{ background: item.gradientFallback }}
+            >
+              <img
+                src={item.src}
+                alt={item.alt}
+                loading="lazy"
+                decoding="async"
+                width={item.width || 1400}
+                height={item.height || 900}
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
+              <figcaption className="gallery-slot-caption">{item.caption}</figcaption>
+            </figure>
+          ))}
         </div>
       </div>
     </section>
   )
 }
 
-function AnimatedReviewsCounter({ target = 3800 }) {
-  const [count, setCount] = useState(0)
-  const counterRef = useRef(null)
-
-  useEffect(() => {
-    let triggered = false
-    const checkVisible = () => {
-      if (!triggered && counterRef.current) {
-        const rect = counterRef.current.getBoundingClientRect()
-        if (rect.top <= (window.innerHeight || document.documentElement.clientHeight) * 0.95 && rect.bottom >= 0) {
-          triggered = true
-          const duration = 1800
-          const startTime = performance.now()
-          const step = (now) => {
-            const elapsed = now - startTime
-            const progress = Math.min(1, elapsed / duration)
-            const ease = 1 - Math.pow(1 - progress, 3)
-            setCount(Math.floor(ease * target))
-            if (progress < 1) {
-              requestAnimationFrame(step)
-            } else {
-              setCount(target)
-            }
-          }
-          requestAnimationFrame(step)
-        }
-      }
-    }
-
-    window.addEventListener('scroll', checkVisible, { passive: true })
-    window.addEventListener('resize', checkVisible, { passive: true })
-    const timer = setTimeout(checkVisible, 100)
-    return () => {
-      window.removeEventListener('scroll', checkVisible)
-      window.removeEventListener('resize', checkVisible)
-      clearTimeout(timer)
-    }
-  }, [target])
-
-  return (
-    <div ref={counterRef} className="reviews-counter">
-      <span className="reviews-counter__num">{count.toLocaleString()}+</span>
-      <span className="reviews-counter__label">Google Reviews</span>
-    </div>
-  )
-}
-
 export function ReviewsSection() {
   const [active, setActive] = useState(0)
-  const data = siteConfig.reviewsData || { reviews: [] }
-  const review = data.reviews?.[active] || {}
-  const total = data.reviews?.length || 1
+  const reviews = siteConfig.reviews || []
+  const total = reviews.length || 1
+  const currentReview = reviews[active] || {}
 
   return (
     <section className="reviews section-ink" id="reviews" aria-labelledby="reviews-title">
       <div className="reviews__inner page-shell">
         <div className="reviews__header">
           <SectionHeading
-            eyebrow={data.eyebrow || 'Kind words from our guests'}
-            title={data.title || 'Over 3,800 Google reviews.'}
+            eyebrow={siteConfig.demoMode ? 'Guest reviews (sample)' : 'Guest reviews'}
+            title="Stories from the cliff."
             dark
           />
-          <AnimatedReviewsCounter target={data.counter || 3800} />
+          {siteConfig.demoMode && (
+            <span className="reviews-sample-badge">Sample reviews</span>
+          )}
         </div>
 
         <div className="review-card" data-reveal>
           <div className="review-card__quote">“</div>
-          <blockquote>{review.quote}</blockquote>
+          <blockquote>{currentReview.quote}</blockquote>
           <div className="review-card__meta">
-            <span>{review.author}</span>
-            <small>{review.source}</small>
+            <span>{currentReview.author}</span>
+            <small>Aurelia Cafe Guest · {siteConfig.demoMode ? 'sample review' : 'verified'}</small>
           </div>
           <div className="review-card__controls">
             <button
@@ -204,91 +109,60 @@ export function ReviewsSection() {
   )
 }
 
-export function EventsSection({ onEnquireEvent }) {
-  const cfg = siteConfig.events || {}
-  return (
-    <section className="events section-cream" id="events" aria-labelledby="events-title">
-      <div className="page-shell">
-        <div className="events__grid">
-          <div className="events__copy">
-            <SectionHeading
-              eyebrow={cfg.eyebrow || 'Gatherings & Celebrations'}
-              title={cfg.title || 'Birthdays, group dinners & private celebrations.'}
-              body={cfg.body}
-            />
-            <Button
-              href="#reservation"
-              onClick={() => onEnquireEvent?.({ occasion: 'Group / Birthday Celebration' })}
-            >
-              Enquire about a group table
-            </Button>
-          </div>
-          <div className="events__options">
-            {(cfg.options || []).map((opt) => (
-              <div className="event-item" key={opt.title} data-reveal>
-                <h4>{opt.title}</h4>
-                <p>{opt.detail}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
 export function LocationSection() {
-  const loc = siteConfig.location || {}
-  const waterWords = (siteConfig.brand.waterBodyName || 'Arabian Sea').split(' ')
-  const logoSrc = brandLogo || siteConfig.brand.logo
+  const brand = siteConfig.brand
 
   return (
     <section className="location section-sand" id="location" aria-labelledby="location-title">
       <div className="location__grid page-shell">
         <div className="location__copy">
           <SectionHeading
-            eyebrow={loc.eyebrow || 'Find Us on the Cliff'}
-            title={loc.title || 'Near the Helipad on North Cliff.'}
-            body={loc.body}
+            eyebrow="Find us"
+            title="Perched on Varkala Cliff."
+            body="Follow the cliff pathway for sweeping views of the Arabian Sea, cool sea breezes, and the aroma of fresh coffee."
           />
           <div className="location__info-cards">
             <div className="info-card">
               <span className="info-card__label">Address</span>
-              <p>{siteConfig.brand.address}</p>
-              <small>Landmark: {siteConfig.brand.landmark}</small>
+              <p>{brand.address}</p>
+              <small>Landmark: {brand.landmark}</small>
             </div>
             <div className="info-card">
               <span className="info-card__label">Opening Hours</span>
-              <p>{siteConfig.brand.hours}</p>
+              <p>{brand.hours}</p>
             </div>
             <div className="info-card">
-              <span className="info-card__label">Parking & Arrival</span>
-              <p>{siteConfig.brand.parking}</p>
+              <span className="info-card__label">Direct WhatsApp</span>
+              <p>{brand.phone}</p>
             </div>
           </div>
           <div className="location__actions">
             <Button
-              href={siteConfig.brand.mapsUrl}
+              href={brand.mapsUrl}
               target="_blank"
               variant="outline"
             >
-              <span>Search on Google Maps</span>
+              <span>View location on Google Maps</span>
               <ArrowIcon />
             </Button>
           </div>
         </div>
 
-        <div className="map-embed-wrapper">
-          <iframe
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3943.52622970911!2d76.7033032!3d8.7364556!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3b05ef1c6cdef8c3%3A0xb901243366d650b8!2sGod's%20Own%20Country%20Kitchen!5e0!3m2!1sen!2sin!4v1791660658325!5m2!1sen!2sin"
-            width="600"
-            height="450"
-            style={{ border: 0 }}
-            allowFullScreen=""
-            loading="lazy"
-            referrerPolicy="strict-origin-when-cross-origin"
-            title="God's Own Country Kitchen Google Map"
-          />
+        <div className="location-map-card">
+          <div className="location-map-inner">
+            <span className="map-sea-icon" aria-hidden="true">🌊</span>
+            <h4>{brand.name}</h4>
+            <p>{brand.location}</p>
+            <span className="map-badge">Cliffside Sea View</span>
+            <a
+              href={brand.mapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="map-link-btn"
+            >
+              Open in Google Maps ↗
+            </a>
+          </div>
         </div>
       </div>
     </section>
@@ -303,7 +177,7 @@ export function FaqSection() {
         <SectionHeading
           eyebrow="Helpful Details"
           title="Frequently Asked Questions."
-          body="A few details guests ask before heading to our cliffside table."
+          body="Everything you need to know about dining, ordering, and spending your days at Aurelia Cafe."
         />
         <div className="faq-list">
           {siteConfig.faqs.map((faq, index) => (
@@ -328,79 +202,101 @@ export function FaqSection() {
   )
 }
 
-export function ContactSection({ reservationIntent }) {
+export function BookingSection({ reservationIntent, onBookingSuccess }) {
+  const brand = siteConfig.brand
   return (
-    <section className="contact section-terracotta" id="contact" aria-labelledby="contact-title">
+    <section className="contact section-terracotta" id="booking" aria-labelledby="booking-title">
       <div className="contact__top page-shell">
         <div>
-          <p className="eyebrow">Table Reservations & Enquiries</p>
-          <h2 id="contact-title">An unhurried table<br /><em>overlooking the sea.</em></h2>
+          <p className="eyebrow">Table Booking</p>
+          <h2 id="booking-title">An unhurried table<br /><em>overlooking the sea.</em></h2>
         </div>
-        <a className="contact__phone" href={siteConfig.brand.phoneHref} target="_blank" rel="noreferrer">
+        <a className="contact__phone" href={brand.phoneHref} target="_blank" rel="noreferrer">
           Chat on WhatsApp
-          <span>Fastest reservation enquiry <ArrowIcon /></span>
+          <span>Direct table enquiry <ArrowIcon /></span>
         </a>
       </div>
       <div className="page-shell">
-        <BookingForm reservationIntent={reservationIntent} />
+        <BookingForm
+          reservationIntent={reservationIntent}
+          onBookingSuccess={onBookingSuccess}
+        />
       </div>
       <div className="contact__details page-shell">
         <div>
           <span>Location</span>
-          <p>{siteConfig.brand.address}</p>
+          <p>{brand.address}</p>
         </div>
         <div>
           <span>Hours</span>
-          <p>{siteConfig.brand.hours}<br />{siteConfig.brand.phone}</p>
+          <p>{brand.hours}<br />{brand.phone}</p>
         </div>
         <div>
-          <span>Direct Contact</span>
-          <p>WhatsApp: {siteConfig.brand.whatsappLabel}<br />{siteConfig.brand.email}</p>
+          <span>WhatsApp Enquiries</span>
+          <p>WhatsApp: {brand.whatsappLabel}<br />{brand.email}</p>
         </div>
       </div>
     </section>
   )
 }
 
-export function FooterSection() {
+export function FooterSection({ onOpenLegal, onOpenAdmin }) {
   return (
     <footer className="footer section-ink">
       <div className="footer__top page-shell">
-        <BrandFooter />
+        <div className="footer-brand" aria-label={siteConfig.brand.name}>
+          <div className="footer-brand__text">
+            <span className="footer-brand__name">{siteConfig.brand.name}</span>
+            <small>{siteConfig.brand.tagline}</small>
+          </div>
+        </div>
+
         <div className="footer__links">
           <div>
             <span>Explore</span>
-            {navigation.map((item) => (
-              <a key={item.href} href={item.href}>{item.label}</a>
-            ))}
+            <a href="#top">Top</a>
+            <a href="#timeline">Timeline</a>
+            <a href="#menu">Menu</a>
+            <a href="#outdoor">Outdoor & Views</a>
+            <a href="#booking">Book Table</a>
+          </div>
+          <div>
+            <span>Legal & Safety</span>
+            <button type="button" className="footer-link-btn" onClick={() => onOpenLegal?.('privacy')}>
+              Privacy Notice
+            </button>
+            <button type="button" className="footer-link-btn" onClick={() => onOpenLegal?.('terms')}>
+              Terms & Conditions
+            </button>
+            <button type="button" className="footer-link-btn" onClick={() => onOpenLegal?.('refund')}>
+              Refund & Cancellation
+            </button>
+            {siteConfig.features?.admin && (
+              <button type="button" className="footer-link-btn admin-link-accent" onClick={onOpenAdmin}>
+                🔐 Admin Portal
+              </button>
+            )}
           </div>
           <div>
             <span>Connect</span>
-            <a href={siteConfig.brand.phoneHref} target="_blank" rel="noreferrer">WhatsApp Reservation</a>
-            <a href={siteConfig.brand.mapsUrl} target="_blank" rel="noreferrer">Google Maps Location</a>
+            <a href={siteConfig.brand.phoneHref} target="_blank" rel="noreferrer">
+              WhatsApp Booking
+            </a>
+            <a href={siteConfig.brand.mapsUrl} target="_blank" rel="noreferrer">
+              Google Maps
+            </a>
           </div>
         </div>
       </div>
 
       <div className="footer__bottom page-shell">
-        <span>© {new Date().getFullYear()} {siteConfig.brand.shortName}</span>
-        <span>{siteConfig.brand.locationLine}</span>
+        <span>© {new Date().getFullYear()} {siteConfig.brand.name} · {siteConfig.brand.location}</span>
+        {siteConfig.demoMode ? (
+          <span className="demo-credit">Sample website by Selva R, Tirunelveli</span>
+        ) : (
+          <span>All rights reserved.</span>
+        )}
       </div>
     </footer>
-  )
-}
-
-function BrandFooter() {
-  const logoSrc = brandLogo || siteConfig.brand.logo
-  return (
-    <div className="footer-brand" aria-label={siteConfig.brand.name}>
-      {logoSrc && (
-        <img src={logoSrc} alt={siteConfig.brand.name} className="footer-brand__logo" />
-      )}
-      <div className="footer-brand__text">
-        <span>{siteConfig.brand.name}</span>
-        {siteConfig.brand.descriptor && <small>{siteConfig.brand.descriptor}</small>}
-      </div>
-    </div>
   )
 }

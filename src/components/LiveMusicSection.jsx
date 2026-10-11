@@ -1,82 +1,58 @@
-import { useMemo } from 'react'
 import { siteConfig } from '../data/siteConfig'
-import { ArrowIcon, Button, SectionHeading } from './UI'
+import { ArrowIcon, Button } from './UI'
 
 export default function LiveMusicSection({ onReserve }) {
-  const cfg = siteConfig.liveMusic || {}
-  const todayDayIndex = useMemo(() => new Date().getDay(), [])
+  const cfg = siteConfig.liveMusic
+
+  if (!cfg || !cfg.enabled) {
+    return null
+  }
 
   return (
-    <section className="live-music section-dark" id="live-music" aria-labelledby="music-title">
-      <div className="lineup__intro page-shell">
-        <SectionHeading
-          eyebrow={cfg.eyebrow || 'Weekly Sunset & Evening Lineup'}
-          title={cfg.title || 'Live Music by the Sea.'}
-          body={cfg.description || 'Acoustic sets and seaside rhythms accompanying every sunset on North Cliff.'}
-          dark
-        />
-        <div className="lineup__note">
-          <span className="lineup__badge-counter">7 Days a Week</span>
-          <p>
-            {cfg.scheduleNote || 'Artist lineup and timings: to be confirmed.'}
-          </p>
-        </div>
-      </div>
+    <section className="live-music-section section-ink" id="live-music" aria-labelledby="live-music-title">
+      <div className="page-shell">
+        <div className="live-music-card" data-reveal>
+          <div className="live-music-card__content">
+            <span className="live-music-card__badge">{cfg.badge || 'Live Music'}</span>
+            <h2 id="live-music-title" className="live-music-card__title">
+              {cfg.title}
+            </h2>
+            <p className="live-music-card__desc">
+              {cfg.description}
+            </p>
 
-      <div className="lineup-pin">
-        <div className="lineup-track">
-          {cfg.days.map((item) => {
-            const isToday = item.dayIndex === todayDayIndex
-            return (
-              <article
-                className={`lineup-card ${isToday ? 'lineup-card--today' : ''}`}
-                key={item.dayName}
+            <div className="live-music-card__schedule">
+              <span className="schedule-icon" aria-hidden="true">♪</span>
+              <div>
+                <strong>Schedule:</strong>
+                <span> {cfg.schedulePlaceholder || 'Schedule to be confirmed'}</span>
+              </div>
+            </div>
+
+            <p className="live-music-card__note">
+              {cfg.note}
+            </p>
+
+            <div className="live-music-card__actions">
+              <Button
+                variant="primary"
+                onClick={() => onReserve?.({ occasion: 'Live Music & Sunset' })}
               >
-                <div className="lineup-card__top">
-                  <span className="lineup-card__day">{item.dayName}</span>
-                  {isToday && (
-                    <span className="lineup-card__tonight-badge">Tonight ★</span>
-                  )}
-                </div>
+                <span>Enquire on WhatsApp</span>
+              </Button>
+            </div>
+          </div>
 
-                <div className="lineup-card__body">
-                  <span className="lineup-card__genre-pill">{item.genre}</span>
-                  <h3 className="lineup-card__title">{item.genre}</h3>
-                  <p className="lineup-card__desc">{item.description}</p>
-
-                  <div className="lineup-card__meta">
-                    <div>
-                      <span className="meta-label">Schedule</span>
-                      <strong>{item.time}</strong>
-                    </div>
-                    <div>
-                      <span className="meta-label">Musicians</span>
-                      <strong>{item.artist}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="lineup-card__bottom">
-                  <Button
-                    variant={isToday ? 'primary' : 'outline-light'}
-                    onClick={() =>
-                      onReserve?.({
-                        occasion: `${item.dayName} Live Music`,
-                        timeSlot: 'Dinner & Live Music (7:00 PM – 10:30 PM)',
-                      })
-                    }
-                  >
-                    <span>{isToday ? 'Reserve for Tonight' : `Reserve ${item.dayName}`}</span>
-                  </Button>
-                </div>
-              </article>
-            )
-          })}
+          <div className="live-music-card__visual" aria-hidden="true">
+            <div className="soundwave-bars">
+              <span style={{ animationDelay: '0.1s' }} />
+              <span style={{ animationDelay: '0.3s' }} />
+              <span style={{ animationDelay: '0.5s' }} />
+              <span style={{ animationDelay: '0.2s' }} />
+              <span style={{ animationDelay: '0.4s' }} />
+            </div>
+          </div>
         </div>
-      </div>
-
-      <div className="lineup__mobile-hint page-shell">
-        <span>← Swipe to see full weekly lineup →</span>
       </div>
     </section>
   )

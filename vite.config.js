@@ -5,23 +5,20 @@ import { siteConfig } from './src/data/siteConfig.js'
 const replaceToken = (html, token, value) =>
   html.replaceAll(`__${token}__`, value)
 
-export default defineConfig(({ command }) => ({
-  base: command === 'serve' ? '/' : '/GOD-S-HEAVEN/',
+export default defineConfig(() => ({
+  base: './',
 
   plugins: [
     react(),
     {
-      name: 'thira-config-meta',
+      name: 'aurelia-config-meta',
       transformIndexHtml(html) {
-        const ogImage = siteConfig.images.hero.src.replace(
-          /([?&])w=\d+/,
-          '$1w=1600'
-        )
+        const ogImage = siteConfig.seo.ogImage || siteConfig.images.hero.src
 
         return [
-          ['THEME_COLOR', siteConfig.theme.ink],
+          ['THEME_COLOR', siteConfig.theme.espressoBrown],
           ['META_DESCRIPTION', siteConfig.seo.description],
-          ['OG_TITLE', siteConfig.seo.title],
+          ['OG_TITLE', siteConfig.seo.ogTitle],
           ['OG_DESCRIPTION', siteConfig.seo.ogDescription],
           ['OG_IMAGE', ogImage],
           ['SITE_TITLE', siteConfig.seo.title],

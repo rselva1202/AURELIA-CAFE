@@ -1,196 +1,275 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { siteConfig } from '../data/siteConfig'
-import { ArrowIcon, Button } from './UI'
+import { ArrowIcon } from './UI'
 
-const toIsoDate = (d) => d.toISOString().slice(0, 10)
-const todayIso = () => toIsoDate(new Date())
+export default function BookingForm({ reservationIntent, onBookingSuccess }) {
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [people, setPeople] = useState('2')
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [timeSlot, setTimeSlot] = useState('17:00')
+  const [occasion, setOccasion] = useState('Casual dining')
+  const [notes, setNotes] = useState('')
+  const [consent, setConsent] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [slotsData, setSlotsData] = useState([])
 
-export const formatDateDisplay = (dateString) => {
-  if (!dateString) return 'Flexible'
-  const [year, month, day] = dateString.split('-').map(Number)
-  const d = new Date(Date.UTC(year, month - 1, day))
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  return `${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`
-}
+  const bookingCfg = siteConfig.booking || {
+    slotMinutes: 30,
+    openFrom: '09:00',
+    openTo: '22:00',
+    capacityPerSlot: 20,
+    maxPartySize: 10,
+    daysAhead: 14,
+  }
 
-const defaultReservation = {
-  name: '',
-  people: '2 people',
-  date: todayIso(),
-  timeSlot: 'Sunset & Golden Hour (5:00 PM – 7:00 PM)',
-  occasion: 'Casual dining',
-  notes: '',
-}
+  // Generate Available Time Slots from siteConfig
+  useEffect(() => {
+    const slots = []
+    const [startH, startM] = (bookingCfg.openFrom || '09:00').split(':').map(Number)
+    const [endH, endM] = (bookingCfg.openTo || '22:00').split(':').map(Number)
+    const interval = bookingCfg.slotMinutes || 30
 
-export default function BookingForm({ reservationIntent }) {
-  const [form, setForm] = useState(defaultReservation)
-  const [submitted, setSubmitted] = useState(false)
-  const [error, setError] = useState('')
-  const today = todayIso()
+    let curMinutes = startH * 60 + startM
+    const endMinutes = endH * 60 + endM
 
+    while (curMinutes <= endMinutes) {
+      const h = Math.floor(curMinutes / 60)
+      const m = curMinutes % 60
+      const formatted = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+      slots.push(formatted)
+      curMinutes += interval
+    }
+    setSlotsData(slots)
+    if (slots.length > 0 && !timeSlot) {
+      setTimeSlot(slots[0])
+    }
+  }, [bookingCfg.openFrom, bookingCfg.openTo, bookingCfg.slotMinutes])
+
+  // Populate intent if passed
   useEffect(() => {
     if (reservationIntent) {
-      setForm((prev) => ({ ...prev, ...reservationIntent }))
-      setSubmitted(false)
-      setError('')
+      if (reservationIntent.occasion) setOccasion(reservationIntent.occasion)
+      if (reservationIntent.notes) setNotes(reservationIntent.notes)
     }
   }, [reservationIntent])
 
-  const setField = (key, value) => {
-    setForm((prev) => ({ ...prev, [key]: value }))
-    setError('')
-  }
+  // Minimum & Maximum Booking Dates
+  const todayIso = new Date().toISOString().slice(0, 10)
+  const maxDate = new Date()
+  maxDate.setDate(maxDate.getDate() + (bookingCfg.daysAhead || 14))
+  const maxDateIso = maxDate.toISOString().slice(0, 10)
 
-  const submit = (event) => {
-    event.preventDefault()
-    const clean = {
-      name: form.name.trim(),
-      people: form.people,
-      date: form.date,
-      timeSlot: form.timeSlot,
-      occasion: form.occasion,
-      notes: form.notes.trim(),
+  const depositPerPerson = siteConfig.payments?.bookingDepositPerPerson || 0
+  const partySizeNum = parseInt(people, 10) || 1
+  const requiredDeposit = depositPerPerson * partySizeNum
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (submitting) return
+
+    if (!name.trim() || name.trim().length < 2) {
+      return setErrorMessage('Please enter your full name.')
+    }
+    const cleanPhone = phone.replace(/[^0-9+]/g, '')
+    if (!cleanPhone || cleanPhone.length < 10) {
+      return setErrorMessage('Please enter a valid phone number (at least 10 digits).')
+    }
+    if (!consent) {
+      return setErrorMessage('Please confirm agreement to booking terms and privacy notice.')
     }
 
-    if (!clean.name) {
-      return setError('Please enter your name.')
+    setSubmitting(true)
+    setErrorMessage('')
+
+    try {
+      const res = await fetch('/api/create-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer: { name, phone },
+          date,
+          timeSlot,
+          people: partySizeNum,
+          occasion,
+          notes,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Booking submission failed.')
+      }
+
+      // If a deposit was required, Razorpay would handle deposit payment
+      if (data.booking.depositAmount > 0 && typeof window.Razorpay === 'function') {
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder',
+          amount: data.booking.depositAmount * 100,
+          currency: 'INR',
+          name: siteConfig.brand.name,
+          description: `Table Deposit #${data.booking.bookingId}`,
+          order_id: data.booking.razorpayOrderId.startsWith('deposit_mock_') ? undefined : data.booking.razorpayOrderId,
+          handler: () => {
+            onBookingSuccess(data.booking, data.whatsappUrl)
+          },
+          prefill: { name, contact: phone },
+          modal: {
+            ondismiss: () => {
+              setSubmitting(false)
+              setErrorMessage('Deposit was cancelled. Reservation remains pending.')
+            },
+          },
+        }
+        const rzp = new window.Razorpay(options)
+        rzp.open()
+      } else {
+        // Confirmed directly (deposit = 0)
+        onBookingSuccess(data.booking, data.whatsappUrl)
+      }
+    } catch (err) {
+      setErrorMessage(err.message || 'Error creating booking.')
+      setSubmitting(false)
     }
-    if (clean.date && clean.date < today) {
-      return setError('Please choose a reservation date from today onwards.')
-    }
-
-    setError('')
-
-    const formattedDate = formatDateDisplay(clean.date)
-    const lines = [
-      `Table Reservation Enquiry · ${siteConfig.brand.name}`,
-      `Name: ${clean.name}`,
-      `Number of people: ${clean.people}`,
-      `Date: ${formattedDate}`,
-      `Time slot: ${clean.timeSlot}`,
-      clean.occasion ? `Occasion: ${clean.occasion}` : null,
-      clean.notes ? `Notes: ${clean.notes}` : null,
-    ].filter(Boolean)
-
-    const message = lines.join('\n')
-    const whatsappUrl = `https://wa.me/${siteConfig.brand.whatsapp}?text=${encodeURIComponent(message)}`
-
-    setSubmitted(true)
-    window.open(whatsappUrl, '_blank')
-  }
-
-  const reservationCfg = siteConfig.reservation || {
-    title: 'Reserve a Table by the Sea',
-    eyebrow: 'Table Reservation',
-    description: 'Book your table for lunch, golden hour sunset, or an evening of live music on North Cliff.',
-    timeSlots: ['Lunch (12:30 PM – 3:30 PM)', 'Sunset & Golden Hour (5:00 PM – 7:00 PM)', 'Dinner & Live Music (7:00 PM – 10:30 PM)', 'Other / Flexible'],
-    occasions: ['Casual dining', 'Sunset drinks & dinner', 'Live music evening', 'Birthday celebration', 'Anniversary', 'Group / Family feast'],
-    guestOptions: ['1 person', '2 people', '3 people', '4 people', '5–8 people', '9+ group'],
   }
 
   return (
     <div className="booking-card" id="reservation">
       <div className="booking-card__intro">
-        <p className="eyebrow">{reservationCfg.eyebrow}</p>
-        <h3>{reservationCfg.title}</h3>
-        <p>{reservationCfg.description}</p>
+        <p className="eyebrow">{bookingCfg.eyebrow || 'Table Booking'}</p>
+        <h3>{bookingCfg.title || 'Reserve a Sea-View Table'}</h3>
+        <p>{bookingCfg.description || 'Front-row seats for morning coffee, brunch, or sunset overlooking Varkala Cliff.'}</p>
         <div className="booking-card__notes">
-          <span>☼ Outdoor seating & Arabian Sea views</span>
-          <span>♪ Live music every evening</span>
-          <span>🌿 Vegetarian options available</span>
+          <span>☕ Specialty Coffee & Toasts</span>
+          <span>🌊 180° Arabian Sea Horizon</span>
+          <span>⚡ Real-Time Instant Confirmation</span>
         </div>
       </div>
 
-      <form className="booking-form" onSubmit={submit} noValidate>
+      <form className="booking-form" onSubmit={handleSubmit} noValidate>
         <div className="form-row">
           <label className="floating-field">
+            <span>Your Name *</span>
             <input
               type="text"
-              value={form.name}
-              onChange={(e) => setField('name', e.target.value)}
-              placeholder=" "
+              placeholder="Full name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               required
-              aria-label="Your full name"
             />
-            <span>Your name *</span>
           </label>
           <label className="floating-field">
-            <select
-              value={form.people}
-              onChange={(e) => setField('people', e.target.value)}
-              aria-label="Number of people"
-            >
-              {reservationCfg.guestOptions.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-            <span>Number of people</span>
+            <span>Phone Number *</span>
+            <input
+              type="tel"
+              placeholder="e.g. 9876543210"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+            />
           </label>
         </div>
 
         <div className="form-row">
           <label className="floating-field">
+            <span>Date * (Up to {bookingCfg.daysAhead} days ahead)</span>
             <input
               type="date"
-              min={today}
-              value={form.date}
-              onChange={(e) => setField('date', e.target.value)}
-              placeholder=" "
+              min={todayIso}
+              max={maxDateIso}
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
               required
-              aria-label="Reservation date"
             />
-            <span>Date *</span>
           </label>
+
           <label className="floating-field">
-            <select
-              value={form.timeSlot}
-              onChange={(e) => setField('timeSlot', e.target.value)}
-              aria-label="Preferred time slot"
-            >
-              {reservationCfg.timeSlots.map((slot) => (
-                <option key={slot} value={slot}>{slot}</option>
+            <span>Time Slot *</span>
+            <select value={timeSlot} onChange={(e) => setTimeSlot(e.target.value)}>
+              {slotsData.map((slot) => (
+                <option key={slot} value={slot}>
+                  {slot} hrs
+                </option>
               ))}
             </select>
-            <span>Time slot</span>
           </label>
         </div>
 
         <div className="form-row">
           <label className="floating-field">
-            <select
-              value={form.occasion}
-              onChange={(e) => setField('occasion', e.target.value)}
-              aria-label="Occasion"
-            >
-              {reservationCfg.occasions.map((occ) => (
-                <option key={occ} value={occ}>{occ}</option>
+            <span>Number of Guests (Max {bookingCfg.maxPartySize})</span>
+            <select value={people} onChange={(e) => setPeople(e.target.value)}>
+              {Array.from({ length: bookingCfg.maxPartySize || 10 }, (_, i) => i + 1).map((n) => (
+                <option key={n} value={String(n)}>
+                  {n} {n === 1 ? 'person' : 'people'}
+                </option>
               ))}
             </select>
-            <span>Occasion (optional)</span>
           </label>
+
           <label className="floating-field">
-            <input
-              type="text"
-              value={form.notes}
-              onChange={(e) => setField('notes', e.target.value)}
-              placeholder=" "
-              aria-label="Special requests or dietary notes"
-            />
-            <span>Special requests / Dietary notes</span>
+            <span>Occasion</span>
+            <select value={occasion} onChange={(e) => setOccasion(e.target.value)}>
+              {(bookingCfg.occasions || ['Casual dining']).map((occ) => (
+                <option key={occ} value={occ}>
+                  {occ}
+                </option>
+              ))}
+            </select>
           </label>
         </div>
 
+        <div className="form-row">
+          <label className="floating-field" style={{ gridColumn: '1 / -1' }}>
+            <span>Special Requests / Notes</span>
+            <input
+              type="text"
+              placeholder="e.g. Cliff-edge table preference, quiet seating, high chair..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </label>
+        </div>
+
+        {depositPerPerson > 0 && (
+          <div className="deposit-notice-pill">
+            <span>Refundable Deposit: ₹{requiredDeposit} (₹{depositPerPerson} per person)</span>
+          </div>
+        )}
+
+        <label className="consent-checkbox-wrap" style={{ color: 'var(--cream)' }}>
+          <input
+            type="checkbox"
+            checked={consent}
+            onChange={(e) => setConsent(e.target.checked)}
+          />
+          <span>
+            I agree to the <a href="#privacy" target="_blank" style={{ color: 'var(--coral)' }}>Privacy Notice</a> & <a href="#refund" target="_blank" style={{ color: 'var(--coral)' }}>Cancellation Policy</a>.
+          </span>
+        </label>
+
+        {errorMessage && (
+          <div className="form-error-alert" role="alert">
+            ⚠️ {errorMessage}
+          </div>
+        )}
+
         <div className="booking-form__footer">
-          <button type="submit" className="button button--primary">
-            <span>Confirm on WhatsApp</span>
+          <button
+            type="submit"
+            className="button button--primary"
+            disabled={submitting}
+          >
+            <span>
+              {submitting
+                ? 'Reserving Table...'
+                : depositPerPerson > 0
+                ? `Pay Deposit (₹${requiredDeposit}) & Book`
+                : 'Confirm Table Booking'}
+            </span>
             <ArrowIcon />
           </button>
-          {submitted && (
-            <span className="form-success">
-              WhatsApp opened! Send the message to complete your reservation.
-            </span>
-          )}
-          {error && <p className="form-error" role="alert">{error}</p>}
         </div>
       </form>
     </div>
