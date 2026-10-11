@@ -11,9 +11,10 @@ import MenuSection from './components/MenuSection'
 import LiveMusicSection from './components/LiveMusicSection'
 import OrderDrawer from './components/OrderDrawer'
 import OrderConfirmationModal from './components/OrderConfirmationModal'
+import BookingConfirmationModal from './components/BookingConfirmationModal'
 import StickyMobileCartBar from './components/StickyMobileCartBar'
 import LegalModal from './components/LegalModal'
-import AdminPortal from './components/AdminPortal'
+import DemoAdminPortal from './components/DemoAdminPortal'
 import { DemoNoticeBanner } from './components/DemoNoticeBanner'
 import {
   OutdoorViewSection,
@@ -38,16 +39,20 @@ export default function App() {
   const [cartItems, setCartItems] = useState([])
   const [legalModalType, setLegalModalType] = useState(null)
   const [adminView, setAdminView] = useState(false)
-  const [confirmedOrder, setConfirmedOrder] = useState(null) // { id, status }
+  const [confirmedOrder, setConfirmedOrder] = useState(null)
+  const [confirmedBookingData, setConfirmedBookingData] = useState(null) // { booking, whatsappUrl }
   const [tableParam, setTableParam] = useState(null)
 
-  // Read ?table=5 and ?admin=true from URL on load
+  // Read ?table=5 and ?admin-demo from URL on load
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search)
       const tbl = params.get('table')
       if (tbl) setTableParam(tbl)
-      if (params.get('admin') === 'true' || window.location.pathname.startsWith('/admin')) {
+
+      const isPathAdmin = window.location.pathname.includes('/admin-demo') || window.location.pathname.includes('/admin')
+      const isQueryAdmin = params.get('admin') === 'true' || params.has('admin-demo')
+      if (isPathAdmin || isQueryAdmin) {
         setAdminView(true)
       }
     } catch {
@@ -60,14 +65,14 @@ export default function App() {
     document.body.classList.toggle('loader-locked', loading)
     if (lenisRef.current) {
       if (loading) lenisRef.current.stop()
-      else if (!menuOpen && !drawerOpen && !adminView && !legalModalType && !confirmedOrder) {
+      else if (!menuOpen && !drawerOpen && !adminView && !legalModalType && !confirmedOrder && !confirmedBookingData) {
         lenisRef.current.start()
       }
     }
     return () => {
       document.body.classList.remove('loader-locked')
     }
-  }, [loading, menuOpen, drawerOpen, adminView, legalModalType, confirmedOrder])
+  }, [loading, menuOpen, drawerOpen, adminView, legalModalType, confirmedOrder, confirmedBookingData])
 
   // Scroll animations with GSAP
   useEffect(() => {
@@ -207,13 +212,12 @@ export default function App() {
     }, 40)
   }
 
-  const handleOrderSuccess = (orderId, status) => {
-    setConfirmedOrder({ id: orderId, status })
+  const handleOrderSuccess = (order) => {
+    setConfirmedOrder(order)
   }
 
   const handleBookingSuccess = (booking, whatsappUrl) => {
-    alert(`🎉 Table Booking Confirmed! (Booking ID: ${booking.bookingId})\nClick OK to open WhatsApp summary for the cafe.`)
-    if (whatsappUrl) window.open(whatsappUrl, '_blank')
+    setConfirmedBookingData({ booking, whatsappUrl })
   }
 
   const totalCartCount = cartItems.reduce((acc, it) => acc + it.quantity, 0)
@@ -221,12 +225,12 @@ export default function App() {
     return typeof it.price === 'number' ? acc + it.price * it.quantity : acc
   }, 0)
 
-  // If in Admin Portal Mode, render full-screen Admin View
+  // DEMO ADMIN VIEW (/admin-demo)
   if (adminView) {
     return (
       <>
         <DemoNoticeBanner />
-        <AdminPortal onBackToSite={() => setAdminView(false)} />
+        <DemoAdminPortal onBackToSite={() => setAdminView(false)} />
         <CustomCursor />
       </>
     )
@@ -278,7 +282,7 @@ export default function App() {
         <LocationSection />
         <WaveDivider fill="var(--cream)" />
 
-        {/* 8. Table Booking Form (server-side capacity check & optional deposit) */}
+        {/* 8. Table Booking Form */}
         <BookingSection
           reservationIntent={reservationIntent}
           onBookingSuccess={handleBookingSuccess}
@@ -290,7 +294,7 @@ export default function App() {
         <WaveDivider fill="var(--espresso)" />
       </main>
 
-      {/* 10. Footer with Legal and Admin triggers */}
+      {/* 10. Footer with Legal and Demo Admin triggers */}
       <FooterSection
         onOpenLegal={(type) => setLegalModalType(type)}
         onOpenAdmin={() => setAdminView(true)}
@@ -315,12 +319,20 @@ export default function App() {
         defaultTable={tableParam}
       />
 
-      {/* Live Order Confirmation Modal */}
+      {/* Live Order Confirmation Modal with Timer Advances */}
       {confirmedOrder && (
         <OrderConfirmationModal
-          orderId={confirmedOrder.id}
-          initialStatus={confirmedOrder.status}
+          order={confirmedOrder}
           onClose={() => setConfirmedOrder(null)}
+        />
+      )}
+
+      {/* Table Booking Confirmation Card with WhatsApp summary */}
+      {confirmedBookingData && (
+        <BookingConfirmationModal
+          booking={confirmedBookingData.booking}
+          whatsappUrl={confirmedBookingData.whatsappUrl}
+          onClose={() => setConfirmedBookingData(null)}
         />
       )}
 

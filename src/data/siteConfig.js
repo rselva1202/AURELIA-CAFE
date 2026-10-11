@@ -10,20 +10,18 @@ export const siteConfig = {
   // Reusable demo config
   demoMode: true,
 
-  // Feature Toggles
+  // Feature Toggles (as specified: features: { ordering: true, booking: true })
   features: {
     ordering: true,
     booking: true,
     admin: true,
   },
 
-  // Payment Configuration
+  // Payment Configuration (as specified: payments: { mode: "demo" })
   payments: {
-    mode: 'test', // "off" | "test" | "live"
-    provider: 'razorpay',
+    mode: 'demo', // Always demo mode
     currency: 'INR',
     allowPayAtVenue: true,
-    bookingDepositPerPerson: 0, // 0 = no deposit required; >0 = refundable deposit in INR
   },
 
   // Online Ordering Configuration
@@ -34,13 +32,13 @@ export const siteConfig = {
     notesEnabled: true,
   },
 
-  // Legal & Business Identity Info (Placeholders marked "to be added by the owner")
+  // Legal & Business Identity Info
   legal: {
-    businessName: 'Aurelia Cafe (Legal entity name: to be added by the owner)',
-    gstNumber: 'GSTIN: to be added by the owner',
+    businessName: 'Aurelia Cafe (Demo business)',
+    gstNumber: 'GSTIN: to be added by owner',
     supportPhone: '+91 63694 03544',
-    supportEmail: 'support@aureliacafe.com',
-    registeredAddress: 'North Cliff, Varkala, Thiruvananthapuram, Kerala 695141 (Address: to be added by the owner)',
+    supportEmail: 'hello@aureliacafe.com',
+    registeredAddress: 'Cliff Perch, North Cliff, Varkala, Kerala',
   },
 
   brand: {
@@ -239,8 +237,8 @@ export const siteConfig = {
       answer: 'Yes! You can reserve your table directly via our website booking form or WhatsApp message. Available slots are checked in real-time.',
     },
     {
-      question: 'How does online ordering work?',
-      answer: 'Browse our menu, add priced items to your cart, and choose Pay Online (Razorpay) or Pay at Venue. For dine-in, scan the table QR code or select dine-in with your table number.',
+      question: 'How does demo online ordering work?',
+      answer: 'Browse our menu, add priced items to your cart, and choose Pay Online (demo simulation) or Pay at Venue. For dine-in, scan the table QR code or select dine-in with your table number.',
     },
     {
       question: 'Is there outdoor seating with sea views?',

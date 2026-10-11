@@ -2,9 +2,47 @@
 
 A premium, motion-rich website for **Aurelia Cafe**, a sea-view cafe and kitchen in Varkala, Kerala. Built with React, Vite, GSAP, ScrollTrigger, Lenis, and modern CSS variable design tokens.
 
-Extended with full **online food & drink ordering**, **table booking with double-booking prevention**, and **optional Razorpay payments** in simulation/demo mode, complete with an **Owner Admin Dashboard** (`/admin`).
+Extended with full **online food & drink ordering**, **table booking with double-booking prevention**, and a **pure client-side Demo mode** (`src/lib/api.js`) with an **Owner Admin Dashboard** (`/admin-demo` and `/admin`).
 
 Everything is driven by configuration in `src/data/siteConfig.js` and `src/data/menu.js`, making rebranding and client handover achievable in under 30 minutes.
+
+---
+
+## 🎭 Demo Mode Architecture (`src/lib/api.js`)
+
+This project includes a **100% backend-free demo experience** designed for GitHub Pages or static pitching:
+- **Zero Real Keys or Servers Required**: No Firebase secrets or Razorpay keys needed to run or test.
+- **API Adapter (`src/lib/api.js`)**: All ordering, booking, slot calculation, and administrative operations are abstracted behind a unified adapter.
+- **Resilient Persistence**: Uses browser `localStorage` wrapped in `try/catch` with an automatic in-memory array fallback (works in restricted/incognito modes).
+- **Simulated Payment Gateway (`DemoCheckoutModal.jsx`)**: Full modal with UPI and Card tabs, "Test payment: no money is charged" label, a realistic 2-second processing animation, and a "Simulate failure" link.
+- **Order Tracking**: Interactive order confirmation with live status transitions (Received → Preparing → Ready).
+- **Table Booking**: Slot availability generator with pre-seeded disabled "Fully booked" slots and WhatsApp confirmation click-to-chat.
+- **Demo Admin Portal (`/admin-demo` or `?admin-demo`)**: Real-time management screen featuring today's metrics, status progression buttons, "+ Load sample orders", and "↺ Reset demo data".
+
+---
+
+## 🔌 How to Plug in a Real Backend
+
+Because all React components communicate **only** with `src/lib/api.js`, transitioning to a real production backend (Vercel Serverless, Node.js/Express, Supabase, or Firebase) requires **zero UI changes**:
+
+1. **Open `src/lib/api.js`**:
+   Replace the local storage methods with HTTP requests to your backend:
+   ```javascript
+   // Example swap in src/lib/api.js
+   export async function createOrder(orderData) {
+     const res = await fetch('/api/create-order', {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+       body: JSON.stringify(orderData)
+     });
+     return res.json();
+   }
+   ```
+2. **Configure Payment Keys**:
+   - In `src/data/siteConfig.js`, set `payments.mode: "test"` (for test keys) or `"live"` (for real payments).
+   - Supply `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` in `.env` or Vercel environment variables.
+3. **Deploy Serverless Functions**:
+   - The pre-built Vercel serverless endpoints in `/api` (`create-order.js`, `verify-payment.js`, `create-booking.js`) are ready to deploy.
 
 ---
 
