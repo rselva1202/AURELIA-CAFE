@@ -169,7 +169,7 @@ export async function createOrder({ items, customer, orderType, tableNumber, not
     })
   }
 
-  const orderId = `ORD-DEMO-${Date.now().toString().slice(-4)}-${Math.floor(100 + Math.random() * 900)}`
+  const orderId = `ORD-${Date.now().toString().slice(-4)}-${Math.floor(100 + Math.random() * 900)}`
   const initialStatus = paymentMethod === 'pay_at_venue' ? 'pay_at_venue' : 'paid'
 
   const orderRecord = {
@@ -285,7 +285,7 @@ export async function createBooking({ customer, date, timeSlot, people, occasion
     throw new Error(`The ${timeSlot} hrs slot is fully booked. Please select another time slot.`)
   }
 
-  const bookingId = `BKG-DEMO-${Date.now().toString().slice(-4)}-${Math.floor(100 + Math.random() * 900)}`
+  const bookingId = `BKG-${Date.now().toString().slice(-4)}-${Math.floor(100 + Math.random() * 900)}`
   const bookingRecord = {
     bookingId,
     customer: { name, phone },
@@ -312,7 +312,7 @@ export async function createBooking({ customer, date, timeSlot, people, occasion
     `Time slot: ${timeSlot} hrs`,
     occasion ? `Occasion: ${occasion}` : null,
     notes ? `Notes: ${notes}` : null,
-    `Status: Confirmed (Demo)`,
+    `Status: Confirmed`,
   ].filter(Boolean)
 
   const whatsappUrl = `https://wa.me/${siteConfig.brand.whatsapp}?text=${encodeURIComponent(summaryLines.join('\n'))}`

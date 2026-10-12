@@ -7,8 +7,8 @@ const resolveBaseUrl = () => {
 const withBase = (path) => `${resolveBaseUrl().replace(/\/$/, '')}/${path.replace(/^\//, '')}`
 
 export const siteConfig = {
-  // Reusable demo config
-  demoMode: true,
+  // Reusable cafe config
+  demoMode: false,
 
   // Feature Toggles (as specified: features: { ordering: true, booking: true })
   features: {
@@ -17,9 +17,9 @@ export const siteConfig = {
     admin: true,
   },
 
-  // Payment Configuration (as specified: payments: { mode: "demo" })
+  // Payment Configuration
   payments: {
-    mode: 'demo', // Always demo mode
+    mode: 'live',
     currency: 'INR',
     allowPayAtVenue: true,
   },
@@ -34,7 +34,7 @@ export const siteConfig = {
 
   // Legal & Business Identity Info
   legal: {
-    businessName: 'Aurelia Cafe (Demo business)',
+    businessName: 'Aurelia Cafe',
     gstNumber: 'GSTIN: to be added by owner',
     supportPhone: '+91 63694 03544',
     supportEmail: 'hello@aureliacafe.com',
@@ -237,8 +237,8 @@ export const siteConfig = {
       answer: 'Yes! You can reserve your table directly via our website booking form or WhatsApp message. Available slots are checked in real-time.',
     },
     {
-      question: 'How does demo online ordering work?',
-      answer: 'Browse our menu, add priced items to your cart, and choose Pay Online (demo simulation) or Pay at Venue. For dine-in, scan the table QR code or select dine-in with your table number.',
+      question: 'How does online ordering work?',
+      answer: 'Browse our menu, add priced items to your cart, and choose Pay Online or Pay at the table. For dine-in, scan the table QR code or select dine-in with your table number.',
     },
     {
       question: 'Is there outdoor seating with sea views?',

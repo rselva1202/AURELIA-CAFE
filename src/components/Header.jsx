@@ -59,8 +59,13 @@ export default function Header({ menuOpen, onMenuToggle, onOpenDrawer, orderCoun
             </button>
           )}
 
-          <Button href="#booking" variant={solid || menuOpen ? 'primary' : 'light'}>
-            Book a table
+          <Button
+            href="#booking"
+            variant={solid || menuOpen ? 'primary' : 'light'}
+            className="site-header__book-btn"
+          >
+            <span className="header-book-label-full">Book a table</span>
+            <span className="header-book-label-short">Book table</span>
           </Button>
 
           {/* Mobile menu hamburger/close button: always visible and clearly labelled */}
@@ -72,9 +77,11 @@ export default function Header({ menuOpen, onMenuToggle, onOpenDrawer, orderCoun
             aria-controls="mobile-menu"
             aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
           >
-            <span />
-            <span />
-            <span />
+            <span className="menu-toggle-icon" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
             <b>{menuOpen ? 'Close' : 'Menu'}</b>
           </button>
         </div>

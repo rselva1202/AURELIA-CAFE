@@ -1,6 +1,8 @@
 import { siteConfig } from '../data/siteConfig'
 
 export function DemoNoticeBanner() {
+  if (!siteConfig.demoMode) return null
+
   return (
     <div className="demo-banner" role="status" aria-live="polite">
       <div className="page-shell demo-banner__content">

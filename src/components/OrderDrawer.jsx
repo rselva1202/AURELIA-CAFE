@@ -343,7 +343,7 @@ export default function OrderDrawer({
                   onClick={handleOpenDemoCheckout}
                   disabled={submitting || isAlcoholExcluded}
                 >
-                  <span>Pay Online (Demo)</span>
+                  <span>Pay Online</span>
                   <ArrowIcon />
                 </button>
 

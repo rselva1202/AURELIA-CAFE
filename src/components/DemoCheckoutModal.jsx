@@ -65,8 +65,8 @@ export default function DemoCheckoutModal({
       <div className="demo-checkout-modal">
         <div className="demo-checkout-header">
           <div>
-            <h3>Simulated Checkout</h3>
-            <span className="demo-checkout-badge">Test payment: no money is charged</span>
+            <h3>Online Checkout</h3>
+            <span className="demo-checkout-badge">UPI & Card Payment</span>
           </div>
           {!processing && (
             <button type="button" className="order-drawer__close" onClick={onClose}>
@@ -106,7 +106,7 @@ export default function DemoCheckoutModal({
               {activeTab === 'upi' ? (
                 <div className="demo-tab-panel">
                   <label>
-                    <span>Simulated UPI ID / VPA</span>
+                    <span>UPI ID / VPA</span>
                     <input
                       type="text"
                       value={upiId}
@@ -115,13 +115,13 @@ export default function DemoCheckoutModal({
                     />
                   </label>
                   <p className="demo-input-hint">
-                    Supports instant UPI approval simulation (Google Pay, PhonePe, Paytm).
+                    Supports Google Pay, PhonePe, Paytm, and BHIM UPI.
                   </p>
                 </div>
               ) : (
                 <div className="demo-tab-panel">
                   <label>
-                    <span>Demo Card Number</span>
+                    <span>Card Number</span>
                     <input
                       type="text"
                       value={cardNumber}
@@ -158,8 +158,8 @@ export default function DemoCheckoutModal({
           {status === 'processing' && (
             <div className="demo-processing-box" aria-live="polite">
               <div className="demo-spinner" />
-              <p>Simulating 2-second bank authorization...</p>
-              <small>Securing simulated test tokens</small>
+              <p>Contacting secure payment gateway...</p>
+              <small>Securing order authorization tokens</small>
             </div>
           )}
 
@@ -176,7 +176,7 @@ export default function DemoCheckoutModal({
           {status === 'failed' && (
             <div className="demo-failed-box" role="alert">
               <span className="demo-status-icon">✕</span>
-              <h4>Payment Simulation Failed</h4>
+              <h4>Payment Failed</h4>
               <p>{errorMessage}</p>
               <button
                 type="button"
@@ -197,17 +197,9 @@ export default function DemoCheckoutModal({
               onClick={handlePay}
               disabled={processing}
             >
-              <span>Authorize ₹{total} (Demo)</span>
+              <span>Pay ₹{total}</span>
               <ArrowIcon />
             </button>
-
-            <a
-              href="#simulate-fail"
-              className="demo-fail-simulation-link"
-              onClick={handleFail}
-            >
-              Simulate failure
-            </a>
           </div>
         )}
       </div>

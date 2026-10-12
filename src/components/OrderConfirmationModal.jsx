@@ -94,7 +94,7 @@ export default function OrderConfirmationModal({ order, onClose }) {
 
         <div className="confirmation-tips">
           <p>📍 {siteConfig.brand.name} · {siteConfig.brand.location}</p>
-          <small>Payment Mode: {order.paymentMethod === 'pay_at_venue' ? 'Pay at Table' : 'Demo Online Payment (Simulated)'}</small>
+          <small>Payment Mode: {order.paymentMethod === 'pay_at_venue' ? 'Pay at Table' : 'Online Payment (UPI / Card)'}</small>
         </div>
 
         <div className="confirmation-modal__actions">

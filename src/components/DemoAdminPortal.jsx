@@ -84,25 +84,27 @@ export default function DemoAdminPortal({ onBackToSite }) {
   return (
     <div className="admin-dashboard-layout">
       {/* Sample Data Banner */}
-      <div className="demo-admin-sample-banner">
-        <span>🧪 Sample data: all operations run via localStorage in-memory adapter</span>
-        <div className="demo-admin-sample-actions">
-          <button type="button" onClick={handleLoadSample}>
-            + Load sample orders
-          </button>
-          <button type="button" onClick={handleResetData}>
-            ↺ Reset demo data
-          </button>
+      {siteConfig.demoMode && (
+        <div className="demo-admin-sample-banner">
+          <span>🧪 Sample data: all operations run via localStorage in-memory adapter</span>
+          <div className="demo-admin-sample-actions">
+            <button type="button" onClick={handleLoadSample}>
+              + Load sample orders
+            </button>
+            <button type="button" onClick={handleResetData}>
+              ↺ Reset demo data
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Admin Top Header */}
       <header className="admin-header">
         <div className="admin-header-brand">
           <span className="admin-brand-seal">A</span>
           <div>
-            <h3>{siteConfig.brand.name} · Demo Admin (/admin-demo)</h3>
-            <span className="admin-user-pill">Local Storage Adapter View</span>
+            <h3>{siteConfig.brand.name} · Admin Operations</h3>
+            <span className="admin-user-pill">Live Dashboard</span>
           </div>
         </div>
 

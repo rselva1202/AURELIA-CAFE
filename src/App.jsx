@@ -240,7 +240,7 @@ export default function App() {
     <>
       {loading && <Loader onComplete={() => setLoading(false)} />}
 
-      <DemoNoticeBanner />
+      {siteConfig.demoMode && <DemoNoticeBanner />}
 
       <Header
         menuOpen={menuOpen}
